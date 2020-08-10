@@ -1,0 +1,33 @@
+data:
+  file: "./input_file.csv" # Path to input file
+  headers: true # If the csv file contains header, put this flag in true, else, put in false
+
+processor:
+  request:
+    method: "GET" # GET, POST, PUT, DELETE.. Default: GET
+    baseUrl: "http://localhost:8080/scope/"
+    headers: # Key Value String Map
+      Content-Type: "application/json"
+    # FOR BODY AND URI
+    # Use %N for use variables in the input file. Where N is the position of the column starting from 1 to N
+    uri: "user/update/address/%1"
+    body: '
+      {
+          "string_example": "%1",
+          "number_example": %1,
+          "bool_example": %1
+      }
+    '
+
+result:
+  file: "" # Path to result (output) file.. Default: result-${timestamp}.csv
+  append_results: false # If the file specified above already exist and this flag is true, it will append the results
+  write_success: false # Save on result file the requests that was successful
+  write_fails: true # Save on result file the request that have an error
+
+executor:
+  routines: 10 # Number of routines that are executing
+  flush_number: 100 # Chunk numbers
+
+logger:
+  level: "INFO" #TRACE, DEBUG, INFO, WARNING, ERROR, OFF.. Default: INFO
