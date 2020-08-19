@@ -109,6 +109,28 @@ func (p *RequestProcessor) Process(record []string) (bool, string) {
 	return true, description
 }
 
+func (p *RequestProcessor) GetParsedUri(record []string) (string, error) {
+	parsedUri, err := p.parseString(uri, record)
+	if err != nil {
+		msg := fmt.Sprintf("Error parsing URI for record %s: %s", record, err.Error())
+		logger.LogError(className, msg)
+		return "", err
+	}
+
+	return parsedUri, nil
+}
+
+func (p *RequestProcessor) GetParsedBody(record []string) (string, error) {
+	parsedUri, err := p.parseString(body, record)
+	if err != nil {
+		msg := fmt.Sprintf("Error parsing BODY for record %s: %s", record, err.Error())
+		logger.LogError(className, msg)
+		return "", err
+	}
+
+	return parsedUri, nil
+}
+
 func (p *RequestProcessor) parseString(str string, record []string) (string, error) {
 	var sb strings.Builder
 	for i := 0; i < len(str); i++ {
