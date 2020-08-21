@@ -41,10 +41,10 @@ func (e *ParallelExecutor) Execute(routines int, flushNumber int) {
 	logger.LogTrace(className, "Channels were created")
 
 	// Declare the wait group, so the program can know when the goroutines are finished the work
-	group := &sync.WaitGroup{}
+	generalGroup := &sync.WaitGroup{}
 	processGroup := &sync.WaitGroup{}
+
 	// Add number of routines to the wait group, so the group know when it is done
-	group.Add(routines)
 	processGroup.Add(routines)
 	logger.LogTrace(className, "Wait group created. Added routines number to it")
 
@@ -53,7 +53,7 @@ func (e *ParallelExecutor) Execute(routines int, flushNumber int) {
 	// results channel
 	for w := 1; w <= routines; w++ {
 		logger.LogTrace(className, fmt.Sprintf("Creating worker %d", w))
-		go e.processData(w, dataReceiveCh, resultsCh, group, processGroup)
+		go e.processData(w, dataReceiveCh, resultsCh, processGroup)
 	}
 
 	// Declare results variables
@@ -66,14 +66,15 @@ func (e *ParallelExecutor) Execute(routines int, flushNumber int) {
 	*failCounter = 0
 
 	// Create a single goroutine for starting to write Data, whenever it starts to receive results in the channel
-	group.Add(1)
-	go e.writeData(resultsCh, group, flushNumber, counter, successCounter, failCounter)
+	generalGroup.Add(1)
+	go e.writeData(resultsCh, generalGroup, flushNumber, counter, successCounter, failCounter)
 
 	// Create a single goroutine, for start to read data from input file, and send it to the dataReceive channel
-	group.Add(1)
-	go e.readData(dataReceiveCh, group)
+	generalGroup.Add(1)
+	go e.readData(dataReceiveCh, generalGroup)
 
-	e.waitAndCloseChannel(resultsCh, group, processGroup)
+	// Wait until the execution finish, so it can close the last channel
+	e.waitAndCloseChannel(resultsCh, generalGroup, processGroup)
 
 	// After the group.Wait() its Done, here is finished the parallel section
 	e.logResult(counter, successCounter, failCounter)
@@ -82,22 +83,24 @@ func (e *ParallelExecutor) Execute(routines int, flushNumber int) {
 /*+
 This function, receive a send only channel for send the data read, and then close the channel.
 */
-func (e *ParallelExecutor) readData(records chan<- []string, group *sync.WaitGroup) {
+func (e *ParallelExecutor) readData(dataReceiveCh chan<- []string, generalGroup *sync.WaitGroup) {
 	logger.LogTrace(className, "Starting to consume data")
 	for {
 		line, err := e.dataLoader.ReadNextLine()
 		if err == io.EOF {
+			logger.LogDebug(className, "End of file reached for input file")
 			break
 		} else if err != nil {
 			logger.LogError(className, fmt.Sprintf("Error reading line: %s", err.Error()))
 		}
 
 		// Send read data to channel
-		records <- line
+		dataReceiveCh <- line
 	}
 	logger.LogTrace(className, "Finished to consume data")
-	group.Done()
-	close(records)
+	generalGroup.Done()
+	// Close the channel so the for in processDataFunction can finish and all the goroutines for process data can be done
+	close(dataReceiveCh)
 	logger.LogTrace(className, "Channel of reading data closed")
 }
 
@@ -107,10 +110,10 @@ the result to the send only channel (result).
 Lastly, when it knows that there is no more data for process (with the for range in the channel), it marks that the
 goroutine is done in the wait group
 */
-func (e *ParallelExecutor) processData(id int, records <-chan []string, results chan<- []string, group *sync.WaitGroup, processGroup *sync.WaitGroup) {
+func (e *ParallelExecutor) processData(id int, dataReceiveCh <-chan []string, resultsCh chan<- []string, processGroup *sync.WaitGroup) {
 	logger.LogTrace(className, fmt.Sprintf("Worker with ID %d started", id))
 
-	for record := range records {
+	for record := range dataReceiveCh {
 		logger.LogTrace(className, fmt.Sprintf("Worker %d processing record: %s", id, record[0]))
 
 		success, description := e.processor.Process(record)
@@ -118,11 +121,10 @@ func (e *ParallelExecutor) processData(id int, records <-chan []string, results 
 
 		logger.LogTrace(className, fmt.Sprintf("Worker %d finished record: %s", id, record[0]))
 
-		results <- currentResult
+		resultsCh <- currentResult
 	}
 
 	logger.LogTrace(className, fmt.Sprintf("Worker with ID %d done", id))
-	group.Done()
 	processGroup.Done()
 }
 
@@ -130,10 +132,10 @@ func (e *ParallelExecutor) processData(id int, records <-chan []string, results 
 This function, receive a receive only channel for read the results, and then write in the output file. Lastly,
 make the goroutine done in the wait group
 */
-func (e *ParallelExecutor) writeData(results <-chan []string, group *sync.WaitGroup, flushNumber int, counter *int, successCounter, failCounter *int64) {
+func (e *ParallelExecutor) writeData(resultsCh <-chan []string, generalGroup *sync.WaitGroup, flushNumber int, counter *int, successCounter, failCounter *int64) {
 
 	logger.LogTrace(className, "Starting to wait for results")
-	for result := range results {
+	for result := range resultsCh {
 		*counter++
 
 		logger.LogTrace(className, fmt.Sprintf("Starting to process result %d", *counter))
@@ -145,6 +147,7 @@ func (e *ParallelExecutor) writeData(results <-chan []string, group *sync.WaitGr
 		success, err := strconv.ParseBool(result[len(result)-2])
 		if err != nil {
 			logger.LogError(className, fmt.Sprintf("Error parsing success flag from result %s. Error: %s", result, err.Error()))
+			continue
 		}
 
 		if success {
@@ -159,17 +162,18 @@ func (e *ParallelExecutor) writeData(results <-chan []string, group *sync.WaitGr
 	}
 
 	logger.LogTrace(className, "Finished to write results")
-	group.Done()
+	generalGroup.Done()
 }
 
-func (e *ParallelExecutor) waitAndCloseChannel(ch chan []string, group *sync.WaitGroup, processGroup *sync.WaitGroup) {
+func (e *ParallelExecutor) waitAndCloseChannel(resultsCh chan []string, generalGroup *sync.WaitGroup, processGroup *sync.WaitGroup) {
 	logger.LogTrace(className, "Starting to wait")
 	processGroup.Wait()
-	close(ch)
+	// Close the channel so the for in writeData can finish then it can sure that all the results are written
+	close(resultsCh)
 
 	// Wait for writerData to finish (and read data to, but it will be always done because the previous group finish when
 	// the readData channel is closed)
-	group.Wait()
+	generalGroup.Wait()
 	logger.LogTrace(className, "Results Closed")
 }
 
