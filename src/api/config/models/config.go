@@ -24,8 +24,9 @@ type Config struct {
 	} `yaml:"result"`
 
 	Executor struct {
-		Routines int `yaml:"routines"`
-		Flush    int `yaml:"flush_number"`
+		Type     string `yaml:"type"`
+		Routines int    `yaml:"routines"`
+		Flush    int    `yaml:"flush_number"`
 	} `yaml:"executor"`
 
 	Logger struct {

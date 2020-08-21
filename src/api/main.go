@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-
+	"fmt"
 	"github.com/hmalatini/request_executor_script/src/api/config"
 	dataLoaderPkg "github.com/hmalatini/request_executor_script/src/api/data_loader"
-	"github.com/hmalatini/request_executor_script/src/api/executor"
+	exec "github.com/hmalatini/request_executor_script/src/api/executor"
 	"github.com/hmalatini/request_executor_script/src/api/logger"
 	"github.com/hmalatini/request_executor_script/src/api/processor"
 	resultWriterPkg "github.com/hmalatini/request_executor_script/src/api/result_writer"
@@ -13,7 +13,6 @@ import (
 
 func main() {
 	configPath := flag.String("config", "", "The path of the config file")
-
 	flag.Parse()
 
 	err := config.InitConfig(*configPath)
@@ -48,8 +47,14 @@ func main() {
 		cfg.Processor.Request.Headers,
 		cfg.Processor.Request.Method)
 
-	parallelExecutor := executor.NewParallelExecutor(*dataLoader, *requestProcessor, *resultWriter)
-	parallelExecutor.Execute(cfg.Executor.Routines, cfg.Executor.Flush)
+	executorFactory := exec.NewExecutorFactory()
+	executor := executorFactory.GetExecutor(cfg.Executor.Type, *dataLoader, *requestProcessor, *resultWriter)
+	if executor == nil {
+		logger.LogError("main", fmt.Sprintf("No executor finded for type: %s", cfg.Executor.Type))
+		return
+	}
+
+	executor.Execute()
 
 	resultWriter.CloseConnection()
 }

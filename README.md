@@ -33,6 +33,9 @@ The possible values for this config are:
 _Tip: If you set `write_success` on `false` and `write_fails` on `true`, you can re-run the script with only the failed data, specifying as input file, the result file of the previous execution._
 ### Executor
 The executor is in charge to send to execute the request. You can configure the following parameters:
+- **type**: Type of executor. Posible values are:
+    - parallel: This is for execute request with goroutines
+    - example: This executor will not execute any request, just print how the request could be parsed, for debug purposes
 - **routines**: Number of go routines that will be executing
 - **flush_number**: Chunk numbers
 ### Logger
