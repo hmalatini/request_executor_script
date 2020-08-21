@@ -20,12 +20,13 @@ processor:
     '
 
 result:
-  file: "" # Path to result (output) file.. Default: result-${timestamp}.csv
+  file: "result" # Path to result (output) file.. Default: result-${timestamp}.csv
   append_results: false # If the file specified above already exist and this flag is true, it will append the results
   write_success: false # Save on result file the requests that was successful
   write_fails: true # Save on result file the request that have an error
 
 executor:
+  type: "example" # parallel, example
   routines: 10 # Number of routines that are executing
   flush_number: 100 # Chunk numbers
 

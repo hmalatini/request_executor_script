@@ -1,7 +1,8 @@
-package executor
+package parallel
 
 import (
 	"fmt"
+	"github.com/hmalatini/request_executor_script/src/api/config"
 	"io"
 	"strconv"
 	"sync"
@@ -31,7 +32,11 @@ func NewParallelExecutor(dataLoader dataLoaderPkg.CsvDataLoader,
 	}
 }
 
-func (e *ParallelExecutor) Execute(routines int, flushNumber int) {
+func (e *ParallelExecutor) Execute() {
+	executorCfg := config.GetConfig().Executor
+	routines := executorCfg.Routines
+	flushNumber := executorCfg.Flush
+
 	// In this channel, there will contain all the data loader by the file input. Whenever it start to receive data,
 	// it will process the data with an arbitrary goroutine. IT IS A BUFFER CHANNEL
 	dataReceiveCh := make(chan []string, flushNumber)
