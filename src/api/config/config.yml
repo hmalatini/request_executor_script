@@ -20,7 +20,7 @@ processor:
     '
 
 result:
-  file: "result" # Path to result (output) file.. Default: result-${timestamp}.csv
+  file: "" # Path to result (output) file.. Default: result-${timestamp}.csv
   append_results: false # If the file specified above already exist and this flag is true, it will append the results
   write_success: false # Save on result file the requests that was successful
   write_fails: true # Save on result file the request that have an error
