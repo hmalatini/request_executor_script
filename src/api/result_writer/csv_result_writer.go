@@ -59,6 +59,7 @@ func (r *CsvResultWriter) WriteResult(result []string, success bool) error {
 
 	if !r.hasToWrite(success) {
 		logger.LogDebug(className, fmt.Sprintf("Discarted %s record", strconv.FormatBool(success)))
+		return nil
 	}
 
 	err := writer.Write(result)
