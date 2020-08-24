@@ -41,6 +41,7 @@ The executor is in charge to send to execute the request. You can configure the 
 ### Logger
 The logger can show what are happening in the script while it is executing.
 - **level**: TRACE, DEBUG, INFO, WARNING, ERROR, OFF.. If nothing is specified, the level `INFO` will be applied
+- **duration**: true/false. Enable if you want to print the execution time when execution ends
 
 ---
 ![bitmoji](https://sdk.bitmoji.com/render/panel/0e5fd403-52c2-4e30-842e-19f331349c0b-e1b374fb-68ff-4b8b-bb46-a837a24fb984-v1.png?transparent=1&palette=1&widht=246)

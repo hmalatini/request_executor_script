@@ -26,9 +26,10 @@ result:
   write_fails: true # Save on result file the request that have an error
 
 executor:
-  type: "example" # parallel, example
+  type: "parallel" # parallel, example
   routines: 10 # Number of routines that are executing
   flush_number: 100 # Chunk numbers
 
 logger:
   level: "INFO" #TRACE, DEBUG, INFO, WARNING, ERROR, OFF.. Default: INFO
+  duration: true # Print time duration of the execution

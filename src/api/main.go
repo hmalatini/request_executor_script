@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
+
 	"github.com/hmalatini/request_executor_script/src/api/config"
 	dataLoaderPkg "github.com/hmalatini/request_executor_script/src/api/data_loader"
 	exec "github.com/hmalatini/request_executor_script/src/api/executor"
@@ -10,6 +12,8 @@ import (
 	"github.com/hmalatini/request_executor_script/src/api/processor"
 	resultWriterPkg "github.com/hmalatini/request_executor_script/src/api/result_writer"
 )
+
+const classname = "Main"
 
 func main() {
 	configPath := flag.String("config", "", "The path of the config file")
@@ -22,6 +26,8 @@ func main() {
 
 	cfg := config.GetConfig()
 	config.PrintConfig()
+
+	startTime := time.Now()
 
 	logger.SetCurrentLogLevel(cfg.Logger.Level)
 
@@ -50,11 +56,15 @@ func main() {
 	executorFactory := exec.NewExecutorFactory()
 	executor := executorFactory.GetExecutor(cfg.Executor.Type, *dataLoader, *requestProcessor, *resultWriter)
 	if executor == nil {
-		logger.LogError("main", fmt.Sprintf("No executor finded for type: %s", cfg.Executor.Type))
+		logger.LogError(classname, fmt.Sprintf("No executor finded for type: %s", cfg.Executor.Type))
 		return
 	}
 
 	executor.Execute()
 
 	resultWriter.CloseConnection()
+
+	if cfg.Logger.TimeDuration {
+		logger.LogInfo(logger.ColorPurple, classname, fmt.Sprintf("\nExecution time: %v", time.Now().Sub(startTime)))
+	}
 }

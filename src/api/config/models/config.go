@@ -30,6 +30,7 @@ type Config struct {
 	} `yaml:"executor"`
 
 	Logger struct {
-		Level string `yaml:"level"`
+		Level        string `yaml:"level"`
+		TimeDuration bool   `yaml:"duration"`
 	} `yaml:"logger"`
 }
